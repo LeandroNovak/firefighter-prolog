@@ -64,3 +64,23 @@ movimenta(posicao(_,_), cima).
 movimenta(posicao(_,_), baixo).
 movimenta(posicao(_,_), direita).
 movimenta(posicao(_,_), esquerda).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+apaga_todos_os_incendios(Arquivo, _) :-
+    carrega_ambiente(Arquivo).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Carrega o ambiente de um arquivo externo
+% base: https://www.swi-prolog.org/FAQ/ReadDynamicFromFile.html
+carrega_ambiente(File) :- 
+    retractall(conteudo(_,_,_)), 
+    open(File, read, Stream),
+    call_cleanup(carrega_ambiente(Stream, _, _),
+    close(Stream)).
+
+carrega_ambiente(_, [], T) :- T == end_of_file, !.
+
+carrega_ambiente(Stream, [T|X], _) :-
+	read(Stream, T),
+	assert(T),
+	carrega_ambiente(Stream,X,T).
