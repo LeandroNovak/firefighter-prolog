@@ -1,3 +1,4 @@
+:- dynamic conteudo/3.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Bombeiro:
 % Define a posição inicial do problema de busca;
@@ -36,15 +37,15 @@
 
 % Regras para movimentação do bombeiro
 % Sobe escada
-permitido(X,Y,cima) :- conteudo(X,Y,escada), conteudo(X,Y+1,escada).
+permitido(X,Y,cima) :- conteudo(X,Y,escada_inferior), Y2 is Y+1, conteudo(X,Y2,escada_superior).
 % Desce escada
-permitido(X,Y,baixo) :- conteudo(X,Y,escada), conteudo(X,Y-1,escada).
-% Anda sobre entulho
-permitido(X,Y,direita) :- conteudo(X+1,Y,entulho), not(conteudo(X+2,Y,_)).
-permitido(X,Y,esquerda) :- conteudo(X-1,Y,entulho), not(conteudo(X-2,Y,_)).
+permitido(X,Y,baixo) :- conteudo(X,Y,escada_superior), Y2 is Y-1, conteudo(X,Y2,escada_inferior).
 % Verifica parede ou incêndio
-permitido(X,Y,direita) :- not(conteudo(X+1,Y,parede)), not(conteudo(X+1,Y,incendio)), X < 10.
-permitido(X,Y,esquerda) :- not(conteudo(X-1,Y,parede)), not(conteudo(X-1,Y,incendio)), X > 1.
+permitido(X,Y,direita) :- X1 is X+1, not(conteudo(X1,Y,entulho)), not(conteudo(X1,Y,parede)), not(conteudo(X1,Y,incendio)), X < 10.
+permitido(X,Y,esquerda) :- X1 is X-1, not(conteudo(X1,Y,entulho)), not(conteudo(X1,Y,parede)), not(conteudo(X1,Y,incendio)), X > 1.
+% Anda sobre entulho
+permitido(X,Y,direita) :- X1 is X+1, conteudo(X1,Y,entulho), not(conteudo(X,Y,_)), X2 is X+2, not(conteudo(X2,Y,_)).
+permitido(X,Y,esquerda) :- X1 is X-1, conteudo(X1,Y,entulho), not(conteudo(X,Y,_)), X2 is X-2, not(conteudo(X2,Y,_)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Métodos para manipulação de listas (Aula Prolog)
@@ -60,14 +61,25 @@ meta(Estado) :- pertence(0,Estado).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Define possíveis movimentações
-movimenta(posicao(_,_), cima).
-movimenta(posicao(_,_), baixo).
-movimenta(posicao(_,_), direita).
-movimenta(posicao(_,_), esquerda).
+movimenta(_,_, cima).
+movimenta(_,_, baixo).
+movimenta(_,_, direita).
+movimenta(_,_, esquerda).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-apaga_todos_os_incendios(Arquivo, _) :-
-    carrega_ambiente(Arquivo).
+% solucao por busca em profundidade (bp)
+%solucao_bp(Inicial,Solucao) :- bp([],Inicial,Solucao).
+% Se o primeiro estado da lista é meta, retorna a meta
+%bp(Caminho,Estado,[Estado|Caminho]) :- meta(Estado).
+% se falha, coloca o no caminho e continua a busca
+%bp(Caminho,Estado,Solucao) :- sucessor(Estado,Sucessor), not(pertence(Sucessor,[Estado|Caminho])), bp([Estado|Caminho],Sucessor,Solucao).
+
+s([X,Y,Extintor,Incendios],[X,Y2,Extintor,Incendios]) :- permitido(X,Y,cima), Y2 is Y+1.
+
+s([X,Y,Extintor,Incendios],[X,Y2,Extintor,Incendios]) :- permitido(X,Y,baixo), Y2 is Y-1.
+
+s([X,Y,Extintor,Incendios],[X2,Y,Extintor,Incendios]) :- permitido(X,Y,direita), X2 is X+1.
+
+s([X,Y,Extintor,Incendios],[X2,Y,Extintor,Incendios]) :- permitido(X,Y,esquerda), X2 is X-1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Carrega o ambiente de um arquivo externo

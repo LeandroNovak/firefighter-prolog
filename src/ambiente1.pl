@@ -9,31 +9,31 @@
 conteudo(1,1,bombeiro).
 
 % Define os objetos e sua posições
-conteudo(1,5,escada).
-conteudo(1,9,incendio).
+conteudo(5,1,escada_inferior).
+conteudo(9,1,incendio).
 
-conteudo(2,4,entulho).
-conteudo(2,5,escada).
-conteudo(2,7,entulho).
-conteudo(2,9,escada).
+conteudo(4,2,entulho).
+conteudo(5,2,escada_superior).
+conteudo(7,2,entulho).
+conteudo(9,2,escada_inferior).
 
-conteudo(3,1,escada).
-conteudo(3,2,extintor).
+conteudo(1,3,escada_inferior).
+conteudo(2,3,extintor).
 conteudo(3,3,parede).
-conteudo(3,9,escada).
-conteudo(3,10,escada).
+conteudo(9,3,escada_superior).
+conteudo(10,3,escada_inferior).
 
-conteudo(4,1,escada).
-conteudo(4,3,escada).
+conteudo(1,4,escada_superior).
+conteudo(3,4,escada_inferior).
 conteudo(4,4,entulho).
-conteudo(4,5,escada).
-conteudo(4,7,entulho).
-conteudo(4,9,escada).
-conteudo(4,10,escada).
+conteudo(5,4,escada_inferior).
+conteudo(7,4,entulho).
+conteudo(9,4,escada_inferior).
+conteudo(10,4,escada_superior).
 
-conteudo(5,3,escada).
-conteudo(5,5,escada).
-conteudo(5,6,entulho).
-conteudo(5,7,parede).
-conteudo(5,9,escada).
-conteudo(5,10,incendio).
+conteudo(3,5,escada_superior).
+conteudo(5,5,escada_superior).
+conteudo(6,5,entulho).
+conteudo(7,5,parede).
+conteudo(9,5,escada_superior).
+conteudo(10,5,incendio).
