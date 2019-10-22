@@ -35,19 +35,6 @@
 % O algoritmo deve ser capaz de resultar em falha para cenários impossíveis.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Regras para movimentação do bombeiro
-% Sobe escada
-permitido(X,Y,cima) :- conteudo(X,Y,escada_inferior), Y2 is Y+1, conteudo(X,Y2,escada_superior).
-% Desce escada
-permitido(X,Y,baixo) :- conteudo(X,Y,escada_superior), Y2 is Y-1, conteudo(X,Y2,escada_inferior).
-% Verifica parede ou incêndio
-permitido(X,Y,direita) :- X1 is X+1, not(conteudo(X1,Y,entulho)), not(conteudo(X1,Y,parede)), not(conteudo(X1,Y,incendio)), X < 10.
-permitido(X,Y,esquerda) :- X1 is X-1, not(conteudo(X1,Y,entulho)), not(conteudo(X1,Y,parede)), not(conteudo(X1,Y,incendio)), X > 1.
-% Anda sobre entulho
-permitido(X,Y,direita) :- X1 is X+1, conteudo(X1,Y,entulho), not(conteudo(X,Y,_)), X2 is X+2, not(conteudo(X2,Y,_)).
-permitido(X,Y,esquerda) :- X1 is X-1, conteudo(X1,Y,entulho), not(conteudo(X,Y,_)), X2 is X-2, not(conteudo(X2,Y,_)).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Métodos para manipulação de listas (Aula Prolog)
 pertence(Elem,[Elem|_ ]).
 pertence(Elem,[ _| Cauda]) :- pertence(Elem,Cauda).
@@ -56,65 +43,92 @@ concatena([ ],L,L).
 concatena([Cab|Cauda],L2,[Cab|Resultado]) :- concatena(Cauda,L2,Resultado).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Define o estado meta (Estado contém 0 incêndios)
-meta(Incendios) :- Incendios == 0.
+% Regras para movimentação do bombeiro
+% Sobe escada
+permitido(X,Y,cima) :- conteudo(X,Y,escada_inferior), Y2 is Y+1, 
+    conteudo(X,Y2,escada_superior).
+
+% Desce escada
+permitido(X,Y,baixo) :- conteudo(X,Y,escada_superior), Y2 is Y-1, 
+    conteudo(X,Y2,escada_inferior).
+
+% Verifica parede ou incêndio
+permitido(X,Y,direita) :- X1 is X+1, not(conteudo(X1,Y,entulho)), 
+    not(conteudo(X1,Y,parede)), not(conteudo(X1,Y,incendio)), X < 10.
+permitido(X,Y,esquerda) :- X1 is X-1, not(conteudo(X1,Y,entulho)), 
+    not(conteudo(X1,Y,parede)), not(conteudo(X1,Y,incendio)), X > 1.
+
+% Anda sobre entulho
+permitido(X,Y,direita) :- X1 is X+1, conteudo(X1,Y,entulho), 
+    not(conteudo(X,Y,_)), X2 is X+2, not(conteudo(X2,Y,_)).
+permitido(X,Y,esquerda) :- X1 is X-1, conteudo(X1,Y,entulho), 
+    not(conteudo(X,Y,_)), X2 is X-2, not(conteudo(X2,Y,_)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Define possíveis movimentações
-movimenta(_,_, cima).
-movimenta(_,_, baixo).
-movimenta(_,_, direita).
-movimenta(_,_, esquerda).
-
-% solucao por busca em profundidade (bp)
-solucao_bp(Inicial,Solucao) :- bp([],Inicial,Solucao).
-% Se o primeiro estado da lista é meta, retorna a meta
-bp(Caminho,Estado,[Estado|Caminho]) :- meta(Estado).
-% se falha, coloca o no caminho e continua a busca
-bp(Caminho,Estado,Solucao) :- 
-    s(Estado,Sucessor), 
-    not(pertence(Sucessor,[Estado|Caminho])), 
-    bp([Estado|Caminho],Sucessor,Solucao).
-
 % Gera os estados permitidos para as movimentações
-s([X,Y,Extintor,Incendios],[X,Y2,Extintor,Incendios]) :-
+s([X,Y],[X,Y2]) :-
     permitido(X,Y,cima),
     Y2 is Y+1.
 
-s([X,Y,Extintor,Incendios],[X,Y2,Extintor,Incendios]) :-
+s([X,Y],[X,Y2]) :-
     permitido(X,Y,baixo),
     Y2 is Y-1.
 
-s([X,Y,Extintor,Incendios],[X2,Y,Extintor,Incendios]) :-
+s([X,Y],[X2,Y]) :-
     permitido(X,Y,direita),
     X2 is X+1.
 
-s([X,Y,Extintor,Incendios],[X2,Y,Extintor,Incendios]) :-
+s([X,Y],[X2,Y]) :-
     permitido(X,Y,esquerda),
     X2 is X-1.
 
-meta_bfs(Objetivo,[Objetivo,_]).
+sucessores([X,Y],Sucessores) :-
+    bagof([X2,Y2],estende([X,Y],[X2,Y2]),Sucessores).
 
-%busca
-busca([X,Y],[XF,YF],Caminho) :-
-    false.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+meta(Estado,Item) :- 
+    bagof([X,Y],conteudo(X,Y,Item),Lista),
+    pertence(Estado,Lista).
+
+% solucao por busca em largura (bl)
+solucao_bl(Inicial,Item,Solucao) :- bl([[Inicial]],Solucao,Item).
+
+% Se o primeiro estado de F for meta, então o retorna com o caminho
+bl([[Estado|Caminho]|_],[Estado|Caminho],Item) :- meta(Estado,Item).
+
+%falha ao encontrar a meta, então estende o primeiro estado até seus sucessores e os coloca no final da lista de fronteira
+bl([Primeiro|Outros], Solucao, Item) :- estende(Primeiro,Sucessores), concatena(Outros,Sucessores,NovaFronteira), bl(NovaFronteira,Solucao, Item).
+
+%metodo que faz a extensao do caminho até os nós filhos do estado
+estende([Estado|Caminho],ListaSucessores):- bagof([Sucessor,Estado|Caminho], (s(Estado,Sucessor),not(pertence(Sucessor,[Estado|Caminho]))), ListaSucessores),!.
+
+estende( _ ,[]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Define o estado meta (Estado contém 0 incêndios)
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Extintor ainda possui carga, então não efetua a busca
 busca_extintor([X,Y,Extintor,Caminho],[X,Y,Extintor,Caminho]) :-
     Extintor > 0.
 
 % Extintor vazio, inicia busca
-busca_extintor([X,Y,Extintor,Caminho],[X,Y,Extintor,Caminho]) :- 
-    bagof([X,Y],conteudo(X,Y,incendio),Objetivos).
+busca_extintor([X,Y,_,Caminho],[X2,Y2,2,[[X2,Y2]|Caminho2]]) :- 
+    solucao_bl([X,Y],extintor,C),
+    concatena(C,Caminho,[[X2,Y2]|Caminho2]),!.
 
 % Todos os incêndios foram apagados
 busca_incendio([X,Y,Extintor,Caminho], [X,Y,Extintor,Caminho]) :- 
     aggregate_all(count, conteudo(_,_,incendio), Count),
-    Count == 0.
+    Count == 0,!.
 
 % Tenta encontrar um incêndio e apagá-lo
-busca_incendio([X,Y,Extintor,Caminho], [X,Y,Extintor,Caminho]) :- 
-    bagof([X,Y],conteudo(X,Y,incendio),Objetivos).
+busca_incendio([X,Y,_,Caminho], [X2,Y2,2,[[X2,Y2]|Caminho2]]) :- 
+    solucao_bl([X,Y],incendio,C),
+    concatena(C,Caminho,[[X2,Y2]|Caminho2]),!.
 
 % Não há incêndios
 apaga_incendios([_,_,_,_]) :- 
@@ -147,3 +161,6 @@ carrega_ambiente(Stream, [T|X], _) :-
 	read(Stream, T),
 	assert(T),
 	carrega_ambiente(Stream,X,T).
+
+inicializa() :-
+carrega_ambiente('ambiente1.pl').
