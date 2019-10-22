@@ -5,11 +5,15 @@ chao([3,5,entulho]).
 %%%%%JUNTAR MOVIMENTAÇÕES COM DISJUNÇÕES%%%%%
 %tenta pegar extintor antes, senao apenas ignora o extintor. Depois tenta apagar o fogo, e então tenta passar normalmente.
 %movimentacaodireita
-s([X, Y, Z], [X2, Y, Z2]) :- X < 10, X2 is X+1, Z=0, Z2=2, chao([X2, Y, extintor]); X < 10, X2 is X+1, Z>0, Z2 is Z-1, chao([X2, Y, fogo]); X < 10, X2 is X+1, Z2 is Z permitidoH([X, Y], [X2, Y]).
+s([X, Y, Z], [X2, Y, Z2]) :- X < 10, X2 is X+1, Z=0, Z2=2, chao([X2, Y, extintor]); 
+X < 10, X2 is X+1, Z>0, Z2 is Z-1, chao([X2, Y, fogo]); 
+X < 10, X2 is X+1, Z2 is Z, permitidoH([X, Y], [X2, Y]).
 
 %tenta pegar extintor antes, senao apenas ignora o extintor. Depois tenta apagar o fogo, e então tenta passar normalmente.
 %movimentacaoesquerda
-s([X, Y, Z], [X2, Y, Z]) :- X > 1, X2 is X-1, permitidoH([X, Y], [X2, Y]); X > 1, X2 is X-1, Z>0, Z2 is Z-1, chao([X2, Y, fogo]); X > 1, X2 is X-1, Z=0, Z2=2, chao([X2, Y, extintor]).
+s([X, Y, Z], [X2, Y, Z]) :- X > 1, X2 is X-1, permitidoH([X, Y], [X2, Y]); 
+X > 1, X2 is X-1, Z>0, Z2 is Z-1, chao([X2, Y, fogo]); 
+X > 1, X2 is X-1, Z=0, Z2=2, chao([X2, Y, extintor]).
 
 %movimentacaocima
 s([X, Y, _], [X, Y2, _]) :- Y < 5, Y2 is Y+1, permitidoV([X, Y], [X, Y2]).
@@ -33,13 +37,14 @@ permitidoV([X, Y], [X, Y2]) :- chao([X, Y, escada]), chao([X, Y2, escada]).
 permitidoH([X, Y], [X2, Y]) :- not(obstaculoH([X2, Y, _])).
 
 %obstaculo utilizado para determinar se é possível pular.
-obstaculoP([_,_,fogo]).
-obstabuloP([_,_,escada]).
-obstaculoP([_,_,entulho]).
-obstaculoP([_,_,bloqueio]).
-obstaculoP([_,_,extintor]). %? 
+obstaculoP([X, Y, fogo]):- chao([X, Y, fogo]).
+obstaculoP([X, Y, escada]):- chao([X, Y, escada]).
+obstaculoP([X, Y, entulho]):- chao([X, Y, entulho]).
+obstaculoP([X, Y, bloqueio]):- chao([X, Y, bloqueio]).
+obstaculoP([X, Y, extintor]):- chao([X, Y, extintor]). %? 
 
 %obstaculo utilizado para determinar se é possível andar normalmente sobre.
-obstaculoH([_,_,fogo]).
-obstaculoH([_,_,entulho]).
-obstaculoH([_,_,bloqueio]).
+obstaculoH([X, Y, fogo]):- chao([X, Y, fogo]).
+obstaculoH([X, Y, entulho]):- chao([X, Y, entulho]).
+obstaculoH([X, Y, bloqueio]):- chao([X, Y, bloqueio]).
+
