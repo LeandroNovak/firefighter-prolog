@@ -36,12 +36,15 @@
 % O algoritmo deve ser capaz de resultar em falha para cenários impossíveis.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Métodos para manipulação de listas (Aula Prolog)
+% Métodos para manipulação de listas (Aula Prolog e exercícios)
 pertence(Elem,[Elem|_ ]).
 pertence(Elem,[ _| Cauda]) :- pertence(Elem,Cauda).
 
 concatena([ ],L,L).
 concatena([Cab|Cauda],L2,[Cab|Resultado]) :- concatena(Cauda,L2,Resultado).
+
+inverter([],L,L).
+inverter([Cab|Cauda],L2,Aux) :- inverter(Cauda,L2,[Cab|Aux]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Regras para movimentação do bombeiro
@@ -89,21 +92,22 @@ s([X,Y],[X2,Y]) :-
     permitido(X,Y,esquerda),
     X2 is X-1.
 
-sucessores([X,Y],Sucessores) :-
-    bagof([X2,Y2],estende([X,Y],[X2,Y2]),Sucessores).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% solucao por busca em largura (bl)
+% solucao por busca em largura (bl) obtida do 
 solucao_bl(Inicial,Item,Solucao) :- bl([[Inicial]],Solucao,Item).
 
 % Se o primeiro estado de F for meta, então o retorna com o caminho
 bl([[Estado|Caminho]|_],[Estado|Caminho],Item) :- meta(Estado,Item).
 
-%falha ao encontrar a meta, então estende o primeiro estado até seus sucessores e os coloca no final da lista de fronteira
-bl([Primeiro|Outros], Solucao, Item) :- estende(Primeiro,Sucessores), concatena(Outros,Sucessores,NovaFronteira), bl(NovaFronteira,Solucao, Item).
+% Falha ao encontrar a meta, então estende o primeiro estado até seus sucessores 
+% e os coloca no final da lista de fronteira
+bl([Primeiro|Outros], Solucao, Item) :- estende(Primeiro,Sucessores), 
+    concatena(Outros,Sucessores,NovaFronteira), bl(NovaFronteira,Solucao, Item).
 
 %metodo que faz a extensao do caminho até os nós filhos do estado
-estende([Estado|Caminho],ListaSucessores):- bagof([Sucessor,Estado|Caminho], (s(Estado,Sucessor),not(pertence(Sucessor,[Estado|Caminho]))), ListaSucessores),!.
+estende([Estado|Caminho],ListaSucessores):- bagof([Sucessor,Estado|Caminho], 
+    (s(Estado,Sucessor),not(pertence(Sucessor,[Estado|Caminho]))), ListaSucessores),!.
 
 estende( _ ,[]).
 
@@ -131,6 +135,7 @@ atualiza_extintor(Carga) :-
     retractall(carga_extintor(_)),
     assert(carga_extintor(Carga)).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Sem incêndios para apagar
 busca_incendio([X,Y,Caminho], [X,Y,Caminho]) :- 
     aggregate_all(count, conteudo(_,_,incendio), Count),
@@ -145,6 +150,8 @@ busca_incendio([X,Y,Caminho], [X2,Y2,[[X2,Y2]|Caminho2]]) :-
     concatena(C,Caminho,[[X2,Y2]|Caminho2]),
     retract(conteudo(X2,Y2,incendio)),!.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Sem incêndios para apagar
 apaga_incendios([X,Y,Caminho], [X,Y,Caminho]) :-
     aggregate_all(count, conteudo(_,_,incendio), Count),
     Count == 0,!.
@@ -162,7 +169,8 @@ apaga_todos_os_incendios(Arquivo, Caminho) :-
     carrega_ambiente(Arquivo),
     conteudo(X,Y,bombeiro),
     retract(conteudo(X,Y,bombeiro)),
-    apaga_incendios([X,Y,[[X,Y]]],[_,_,Caminho]).
+    apaga_incendios([X,Y,[]],[_,_,CaminhoInv]),
+    inverter(CaminhoInv,Caminho,[]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Carrega o ambiente de um arquivo externo

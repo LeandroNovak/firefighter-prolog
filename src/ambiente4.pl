@@ -34,7 +34,7 @@ conteudo(10,3,escada_inferior).
 conteudo(3,4,escada_inferior).
 conteudo(4,4,escada_superior).
 conteudo(6,4,entulho).
-conteudo(6,4,escada_inferior).
+conteudo(9,4,escada_inferior).
 conteudo(10,4,escada_superior).
 
 conteudo(2,5,entulho).
