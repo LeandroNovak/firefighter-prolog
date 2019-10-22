@@ -57,7 +57,7 @@ concatena([Cab|Cauda],L2,[Cab|Resultado]) :- concatena(Cauda,L2,Resultado).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Define o estado meta (Estado contém 0 incêndios)
-meta(Estado) :- pertence(0,Estado).
+meta(Incendios) :- Incendios == 0.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Define possíveis movimentações
@@ -67,19 +67,70 @@ movimenta(_,_, direita).
 movimenta(_,_, esquerda).
 
 % solucao por busca em profundidade (bp)
-%solucao_bp(Inicial,Solucao) :- bp([],Inicial,Solucao).
+solucao_bp(Inicial,Solucao) :- bp([],Inicial,Solucao).
 % Se o primeiro estado da lista é meta, retorna a meta
-%bp(Caminho,Estado,[Estado|Caminho]) :- meta(Estado).
+bp(Caminho,Estado,[Estado|Caminho]) :- meta(Estado).
 % se falha, coloca o no caminho e continua a busca
-%bp(Caminho,Estado,Solucao) :- sucessor(Estado,Sucessor), not(pertence(Sucessor,[Estado|Caminho])), bp([Estado|Caminho],Sucessor,Solucao).
+bp(Caminho,Estado,Solucao) :- 
+    s(Estado,Sucessor), 
+    not(pertence(Sucessor,[Estado|Caminho])), 
+    bp([Estado|Caminho],Sucessor,Solucao).
 
-s([X,Y,Extintor,Incendios],[X,Y2,Extintor,Incendios]) :- permitido(X,Y,cima), Y2 is Y+1.
+% Gera os estados permitidos para as movimentações
+s([X,Y,Extintor,Incendios],[X,Y2,Extintor,Incendios]) :-
+    permitido(X,Y,cima),
+    Y2 is Y+1.
 
-s([X,Y,Extintor,Incendios],[X,Y2,Extintor,Incendios]) :- permitido(X,Y,baixo), Y2 is Y-1.
+s([X,Y,Extintor,Incendios],[X,Y2,Extintor,Incendios]) :-
+    permitido(X,Y,baixo),
+    Y2 is Y-1.
 
-s([X,Y,Extintor,Incendios],[X2,Y,Extintor,Incendios]) :- permitido(X,Y,direita), X2 is X+1.
+s([X,Y,Extintor,Incendios],[X2,Y,Extintor,Incendios]) :-
+    permitido(X,Y,direita),
+    X2 is X+1.
 
-s([X,Y,Extintor,Incendios],[X2,Y,Extintor,Incendios]) :- permitido(X,Y,esquerda), X2 is X-1.
+s([X,Y,Extintor,Incendios],[X2,Y,Extintor,Incendios]) :-
+    permitido(X,Y,esquerda),
+    X2 is X-1.
+
+meta_bfs(Objetivo,[Objetivo,_]).
+
+%busca
+busca([X,Y],[XF,YF],Caminho) :-
+    false.
+
+% Extintor ainda possui carga, então não efetua a busca
+busca_extintor([X,Y,Extintor,Caminho],[X,Y,Extintor,Caminho]) :-
+    Extintor > 0.
+
+% Extintor vazio, inicia busca
+busca_extintor([X,Y,Extintor,Caminho],[X,Y,Extintor,Caminho]) :- 
+    bagof([X,Y],conteudo(X,Y,incendio),Objetivos).
+
+% Todos os incêndios foram apagados
+busca_incendio([X,Y,Extintor,Caminho], [X,Y,Extintor,Caminho]) :- 
+    aggregate_all(count, conteudo(_,_,incendio), Count),
+    Count == 0.
+
+% Tenta encontrar um incêndio e apagá-lo
+busca_incendio([X,Y,Extintor,Caminho], [X,Y,Extintor,Caminho]) :- 
+    bagof([X,Y],conteudo(X,Y,incendio),Objetivos).
+
+% Não há incêndios
+apaga_incendios([_,_,_,_]) :- 
+    aggregate_all(count, conteudo(_,_,incendio), Count),
+    Count == 0.
+
+apaga_incendios([X,Y,Extintor,Caminho], [XF,YF,ExtintorF,CaminhoF]) :-
+    busca_extintor([X,Y,Extintor,Caminho],[X2,Y2,Extintor2,Caminho2]),
+    busca_incendio([X2,Y2,Extintor2,Caminho2],[X3,Y3,Extintor3,Caminho3]),
+    apaga_incendios([X3,Y3,Extintor3,Caminho3], [XF,YF,ExtintorF,CaminhoF]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+apaga_todos_os_incendios(Arquivo, Caminho) :-
+    carrega_ambiente(Arquivo),
+    conteudo(X,Y,bombeiro),
+    apaga_incendios([X,Y,0,[[X,Y]]],Caminho).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Carrega o ambiente de um arquivo externo
