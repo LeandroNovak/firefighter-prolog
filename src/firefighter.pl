@@ -1,40 +1,21 @@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Firefighter Prolog
+% Inteligência Artificial - Turma A - 2019/2
+%
+% Professor: 
+%   - Murilo Naldi
+% Alunos: 
+%   - Leandro Prates Novak          586927
+%   - 
+%   - 
+%
+% Uso: apaga_todos_os_incendios('ambientex.pl', Caminho).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Habilita remoção das cláusulas conteudo e carga_extintor
 :- dynamic conteudo/3.
 :- dynamic carga_extintor/1.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Bombeiro:
-% Define a posição inicial do problema de busca;
-% Qualquer posição do ambiente;
-% Preferencialmente no primeiro andar (1).
-
-% Focos de incêndio:
-% Define as posições intermediárias e final do problema de busca;
-% Qualquer posição do ambiente;
-% Qualquer quantidade positiva (> 0).
-
-% Movimentação:
-% É livre em um mesmo andar (horizontal);
-% Movimentação entre andares só é possível se houver uma escada (vertical), 
-% que é um objeto que ocupa dois quadrados (origem e destino);
-% O bombeiro não é capaz de passar por espaços em que existam paredes
-% ou por focos de incêndio que não foram apagados;
-% O bombeiro é capaz de passar por lugares onde há uma pilha de entulho 
-% saltando por ela,
-% ele só poderá passar por uma pilha se os dois quadrados adjacentes à pilha 
-% não possuírem nenhum objeto.
-
-% Extintor:
-% Antes de apagar um foco de incêndio, o bombeiro deve passar por um extintor;
-% Assume-se que ele pega o extintor se não estiver carregando outro;
-% Cada extintor é capaz de apagar até dois focos de incêndio;
-% Bombeiro para passar livremente por um extintor.
-
-% Objetivo:
-% O agente bombeiro deve usar os extintores para apagar todos os incêndios;
-% O resultado é caminho percorrido pelo agente;
-% O tamanho do cenário deve ser configurável, bem como o número de objetos e 
-% suas localizações;
-% O algoritmo deve ser capaz de resultar em falha para cenários impossíveis.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Métodos para manipulação de listas (Aula Prolog e exercícios)
 pertence(Elem,[Elem|_ ]).
@@ -75,26 +56,16 @@ permitido(X,Y,esquerda) :- X1 is X-1, conteudo(X1,Y,incendio),
     carga_extintor(Carga), Carga > 0.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Gera os estados permitidos para as movimentações
-s([X,Y],[X,Y2]) :-
-    permitido(X,Y,cima),
-    Y2 is Y+1.
-
-s([X,Y],[X,Y2]) :-
-    permitido(X,Y,baixo),
-    Y2 is Y-1.
-
-s([X,Y],[X2,Y]) :-
-    permitido(X,Y,direita),
-    X2 is X+1.
-
-s([X,Y],[X2,Y]) :-
-    permitido(X,Y,esquerda),
-    X2 is X-1.
-
+% Gera os sucessores as movimentações (cima, baixo, direita e esquerda)
+s([X,Y],[X,Y2]) :- permitido(X,Y,cima), Y2 is Y+1.
+s([X,Y],[X,Y2]) :- permitido(X,Y,baixo), Y2 is Y-1.
+s([X,Y],[X2,Y]) :- permitido(X,Y,direita), X2 is X+1.
+s([X,Y],[X2,Y]) :- permitido(X,Y,esquerda), X2 is X-1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% solucao por busca em largura (bl) obtida do 
+% Adaptacao do código de Busca em Largura (bl) disponibilizado no material de
+% resolução de problemas por meio de busca. Alterou-se para permitir a busca
+% para mais de um tipo de item (incendio, extintor).
 solucao_bl(Inicial,Item,Solucao) :- bl([[Inicial]],Solucao,Item).
 
 % Se o primeiro estado de F for meta, então o retorna com o caminho
@@ -102,20 +73,24 @@ bl([[Estado|Caminho]|_],[Estado|Caminho],Item) :- meta(Estado,Item).
 
 % Falha ao encontrar a meta, então estende o primeiro estado até seus sucessores 
 % e os coloca no final da lista de fronteira
-bl([Primeiro|Outros], Solucao, Item) :- estende(Primeiro,Sucessores), 
-    concatena(Outros,Sucessores,NovaFronteira), bl(NovaFronteira,Solucao, Item).
+bl([Primeiro|Outros], Solucao, Item) :- 
+    estende(Primeiro,Sucessores), 
+    concatena(Outros,Sucessores,NovaFronteira), 
+    bl(NovaFronteira,Solucao, Item).
 
-%metodo que faz a extensao do caminho até os nós filhos do estado
-estende([Estado|Caminho],ListaSucessores):- bagof([Sucessor,Estado|Caminho], 
-    (s(Estado,Sucessor),not(pertence(Sucessor,[Estado|Caminho]))), ListaSucessores),!.
+% Metodo que faz a extensao do caminho até os nós filhos do estado
+estende([Estado|Caminho],ListaSucessores):- 
+    bagof([Sucessor,Estado|Caminho], (s(Estado,Sucessor), 
+    not(pertence(Sucessor,[Estado|Caminho]))), 
+    ListaSucessores),!.
 
+% Se o estado não tiver sucessor, falha e não procura mais (corte)
 estende( _ ,[]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Define o estado meta, posição atual contém o item procurado
+% Define o estado meta, se a posição atual contém o item procurado
 meta(Estado,Item) :- 
-    bagof([X,Y],conteudo(X,Y,Item),Lista),
-    pertence(Estado,Lista).
+    bagof([X,Y],conteudo(X,Y,Item),Lista), pertence(Estado,Lista).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Extintor ainda possui carga, então não efetua a busca
@@ -190,6 +165,3 @@ carrega_ambiente(Stream, [T|X], _) :-
 	read(Stream, T),
 	assert(T),
 	carrega_ambiente(Stream,X,T).
-
-inicializa() :-
-    carrega_ambiente('ambiente1.pl').
