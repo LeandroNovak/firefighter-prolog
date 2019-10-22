@@ -1,4 +1,5 @@
 :- dynamic conteudo/3.
+:- dynamic carga_extintor/1.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Bombeiro:
 % Define a posição inicial do problema de busca;
@@ -64,6 +65,12 @@ permitido(X,Y,direita) :- X1 is X+1, conteudo(X1,Y,entulho),
 permitido(X,Y,esquerda) :- X1 is X-1, conteudo(X1,Y,entulho), 
     not(conteudo(X,Y,_)), X2 is X-2, not(conteudo(X2,Y,_)).
 
+% Passa por incêndio se possuir carga no extintor
+permitido(X,Y,direita) :- X1 is X+1, conteudo(X1,Y,incendio),
+    carga_extintor(Carga), Carga > 0.
+permitido(X,Y,esquerda) :- X1 is X-1, conteudo(X1,Y,incendio), 
+    carga_extintor(Carga), Carga > 0.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Gera os estados permitidos para as movimentações
 s([X,Y],[X,Y2]) :-
@@ -86,11 +93,6 @@ sucessores([X,Y],Sucessores) :-
     bagof([X2,Y2],estende([X,Y],[X2,Y2]),Sucessores).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-meta(Estado,Item) :- 
-    bagof([X,Y],conteudo(X,Y,Item),Lista),
-    pertence(Estado,Lista).
-
 % solucao por busca em largura (bl)
 solucao_bl(Inicial,Item,Solucao) :- bl([[Inicial]],Solucao,Item).
 
@@ -106,51 +108,70 @@ estende([Estado|Caminho],ListaSucessores):- bagof([Sucessor,Estado|Caminho], (s(
 estende( _ ,[]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Define o estado meta (Estado contém 0 incêndios)
-
+% Define o estado meta, posição atual contém o item procurado
+meta(Estado,Item) :- 
+    bagof([X,Y],conteudo(X,Y,Item),Lista),
+    pertence(Estado,Lista).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 % Extintor ainda possui carga, então não efetua a busca
-busca_extintor([X,Y,Extintor,Caminho],[X,Y,Extintor,Caminho]) :-
-    Extintor > 0.
+busca_extintor([X,Y,Caminho],[X,Y,Caminho]) :-
+    carga_extintor(Carga),
+    Carga > 0,!.
 
-% Extintor vazio, inicia busca
-busca_extintor([X,Y,_,Caminho],[X2,Y2,2,[[X2,Y2]|Caminho2]]) :- 
+% Extintor vazio, inicia busca por um novo extintor
+busca_extintor([X,Y,Caminho],[X2,Y2,[[X2,Y2]|Caminho2]]) :- 
     solucao_bl([X,Y],extintor,C),
-    concatena(C,Caminho,[[X2,Y2]|Caminho2]),!.
+    concatena(C,Caminho,[[X2,Y2]|Caminho2]),
+    atualiza_extintor(2),
+    retract(conteudo(X2,Y2,extintor)),!.
 
-% Todos os incêndios foram apagados
-busca_incendio([X,Y,Extintor,Caminho], [X,Y,Extintor,Caminho]) :- 
+% Atualiza a carga do extintor
+atualiza_extintor(Carga) :-
+    retractall(carga_extintor(_)),
+    assert(carga_extintor(Carga)).
+
+% Sem incêndios para apagar
+busca_incendio([X,Y,Caminho], [X,Y,Caminho]) :- 
     aggregate_all(count, conteudo(_,_,incendio), Count),
     Count == 0,!.
 
 % Tenta encontrar um incêndio e apagá-lo
-busca_incendio([X,Y,_,Caminho], [X2,Y2,2,[[X2,Y2]|Caminho2]]) :- 
+busca_incendio([X,Y,Caminho], [X2,Y2,[[X2,Y2]|Caminho2]]) :- 
     solucao_bl([X,Y],incendio,C),
-    concatena(C,Caminho,[[X2,Y2]|Caminho2]),!.
+    carga_extintor(Carga), 
+    NovaCarga is Carga-1,
+    atualiza_extintor(NovaCarga),
+    concatena(C,Caminho,[[X2,Y2]|Caminho2]),
+    retract(conteudo(X2,Y2,incendio)),!.
 
-% Não há incêndios
-apaga_incendios([_,_,_,_]) :- 
+apaga_incendios([X,Y,Caminho], [X,Y,Caminho]) :-
     aggregate_all(count, conteudo(_,_,incendio), Count),
-    Count == 0.
+    Count == 0,!.
 
-apaga_incendios([X,Y,Extintor,Caminho], [XF,YF,ExtintorF,CaminhoF]) :-
-    busca_extintor([X,Y,Extintor,Caminho],[X2,Y2,Extintor2,Caminho2]),
-    busca_incendio([X2,Y2,Extintor2,Caminho2],[X3,Y3,Extintor3,Caminho3]),
-    apaga_incendios([X3,Y3,Extintor3,Caminho3], [XF,YF,ExtintorF,CaminhoF]).
+% Busca extintor e apaga até dois incêndios
+apaga_incendios([X,Y,Caminho], [XF,YF,CaminhoF]) :-
+    busca_extintor([X,Y,Caminho],[X2,Y2,Caminho2]),
+    carga_extintor(Carga), Carga > 0,
+    busca_incendio([X2,Y2,Caminho2],[X3,Y3,Caminho3]),
+    busca_incendio([X3,Y3,Caminho3],[X4,Y4,Caminho4]),
+    apaga_incendios([X4,Y4,Caminho4], [XF,YF,CaminhoF]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 apaga_todos_os_incendios(Arquivo, Caminho) :-
     carrega_ambiente(Arquivo),
     conteudo(X,Y,bombeiro),
-    apaga_incendios([X,Y,0,[[X,Y]]],Caminho).
+    retract(conteudo(X,Y,bombeiro)),
+    apaga_incendios([X,Y,[[X,Y]]],[_,_,Caminho]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Carrega o ambiente de um arquivo externo
 % base: https://www.swi-prolog.org/FAQ/ReadDynamicFromFile.html
 carrega_ambiente(File) :- 
-    retractall(conteudo(_,_,_)), 
+    retractall(conteudo(_,_,_)),
+    retractall(carga_extintor(_)),
+    assert(carga_extintor(0)),
+    set_prolog_flag(answer_write_options,[max_depth(0)]),
     open(File, read, Stream),
     call_cleanup(carrega_ambiente(Stream, _, _),
     close(Stream)).
@@ -163,4 +184,4 @@ carrega_ambiente(Stream, [T|X], _) :-
 	carrega_ambiente(Stream,X,T).
 
 inicializa() :-
-carrega_ambiente('ambiente1.pl').
+    carrega_ambiente('ambiente1.pl').
