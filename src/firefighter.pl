@@ -7,8 +7,8 @@
 %   - Murilo Naldi
 % Alunos: 
 %   - Leandro Prates Novak          586927
-%   - 
-%   - 
+%   - Guilherme Neves		    586986
+%   - Gustavo David Leite Bastos
 %
 % Uso: apaga_todos_os_incendios('ambientex.pl', Caminho).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
